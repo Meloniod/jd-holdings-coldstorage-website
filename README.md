@@ -2,6 +2,19 @@
 
 A responsive MVP prototype for mortuary cold-storage operations: case intake, storage allocation and transfers, release approvals, document metadata, invoicing, reports and an audit-event view.
 
+## Public business development website
+
+A public-facing lead-generation page is available at `/opportunities`. It introduces partnership, service, and potential investor conversations, and includes a business enquiry form.
+
+- Page route: `/opportunities`
+- Main page: `app/opportunities/page.tsx`
+- Route metadata: `app/opportunities/layout.tsx`
+- Form integration: set `NEXT_PUBLIC_LEAD_ENDPOINT` to an approved HTTPS endpoint that validates and securely stores leads in a CRM/database.
+- **Preview warning:** without that environment variable, form submissions are saved only in the visitor's browser local storage and are not delivered to JD Holdings. Configure and test the endpoint before using the page for real lead capture.
+- Production setup checklist: `docs/PRODUCTION-READINESS.md`
+
+The page avoids publishing unverified financial projections or promising investment returns. Confirm all business claims, contact details, privacy wording, and service coverage with the business owner before launch.
+
 ## Current status
 
 **This is a browser-local demonstration, not a production mortuary system.** The interface uses fictional seed records and persists changes in `localStorage` in the current browser. No Supabase project, authentication provider, server API, private file storage, email, payment gateway, hardware temperature feed or Vercel deployment has been connected. A draft Supabase schema and starter RLS policies are included under `supabase/migrations/`; they have not been applied or security-tested.
