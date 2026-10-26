@@ -2,18 +2,24 @@
 
 A responsive MVP prototype for mortuary cold-storage operations: case intake, storage allocation and transfers, release approvals, document metadata, invoicing, reports and an audit-event view.
 
-## Public business development website
+## Public website and management portal
 
-A public-facing lead-generation page is available at `/opportunities`. It introduces partnership, service, and potential investor conversations, and includes a business enquiry form.
+- Public business-development website (homepage): `/`
+- Internal operations management portal: `/portal`
+- Legacy `/opportunities` route redirects to the public homepage.
+- Portal metadata requests that search engines do not index the management interface. This is **not** access control; authentication and server-side authorization are still required before real operational data is used.
 
-- Page route: `/opportunities`
-- Main page: `app/opportunities/page.tsx`
-- Route metadata: `app/opportunities/layout.tsx`
+## Lead capture setup
+
+The homepage includes partnership, investor, and business enquiry messaging plus an enquiry form.
+
+- Main page: `app/page.tsx`
+- Portal: `app/portal/page.tsx`
 - Form integration: set `NEXT_PUBLIC_LEAD_ENDPOINT` to an approved HTTPS endpoint that validates and securely stores leads in a CRM/database.
-- **Preview warning:** without that environment variable, form submissions are saved only in the visitor's browser local storage and are not delivered to JD Holdings. Configure and test the endpoint before using the page for real lead capture.
+- **Preview warning:** without that environment variable, form submissions are saved only in the visitor's browser local storage and are not delivered to JD Holdings. Configure and test the endpoint before using the form for real lead capture.
 - Production setup checklist: `docs/PRODUCTION-READINESS.md`
 
-The page avoids publishing unverified financial projections or promising investment returns. Confirm all business claims, contact details, privacy wording, and service coverage with the business owner before launch.
+Confirm all business claims, contact details, privacy wording, service coverage, and investment disclosures with the business owner before launch.
 
 ## Current status
 
