@@ -144,3 +144,21 @@ This document describes the work required to take the JD Holdings Cold Storage M
 ## Release decision
 
 **Do not use with real sensitive records until the critical security, backend, backup, audit, and workflow requirements above are implemented and verified.** A working interface alone is not evidence of production readiness.
+
+## 10. Publish the public lead-generation website
+
+The public partnership and investor page is available at `/opportunities`. It introduces the service proposition and captures business enquiries. The form is deliberately transparent about its current preview-only behaviour.
+
+- [ ] Configure `NEXT_PUBLIC_LEAD_ENDPOINT` in the deployment environment to point to an approved HTTPS endpoint that accepts the lead JSON payload and returns a 2xx response on success.
+- [ ] Implement that endpoint on a trusted server or approved CRM/form provider. Validate all fields again on the server; client-side validation is not a security control.
+- [ ] Store leads in a protected CRM/database with access limited to authorised business-development staff.
+- [ ] Add spam protection, rate limiting, bot mitigation, monitoring, and safe failure/retry handling.
+- [ ] Configure consent language, privacy notice, retention period, and a process to honour applicable data-subject requests.
+- [ ] Notify the responsible team after a lead is successfully stored; do not send notifications containing unnecessary personal information.
+- [ ] Test valid, invalid, duplicate, malicious, and failed submissions in staging.
+- [ ] Verify the endpoint's CORS policy if it is hosted on a different domain; allow only the production site origin where practical.
+- [ ] Configure social-sharing metadata and an accurate canonical domain once the production domain is confirmed.
+- [ ] Add conversion analytics only after reviewing consent and privacy implications.
+
+**Important:** Without `NEXT_PUBLIC_LEAD_ENDPOINT`, the form saves the enquiry in that visitor's browser local storage for preview purposes only. It does not deliver the lead to JD Holdings. Do not publish the form for real lead capture until the endpoint/CRM integration has been configured and tested.
+
