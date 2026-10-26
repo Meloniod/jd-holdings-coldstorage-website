@@ -147,7 +147,7 @@ This document describes the work required to take the JD Holdings Cold Storage M
 
 ## 10. Publish the public lead-generation website
 
-The public partnership and investor page is available at `/opportunities`. It introduces the service proposition and captures business enquiries. The form is deliberately transparent about its current preview-only behaviour.
+The public partnership and investor page is the homepage at `/`; the operations management interface is at `/portal`. The legacy `/opportunities` route redirects to the homepage. It introduces the service proposition and captures business enquiries. The form is deliberately transparent about its current preview-only behaviour.
 
 - [ ] Configure `NEXT_PUBLIC_LEAD_ENDPOINT` in the deployment environment to point to an approved HTTPS endpoint that accepts the lead JSON payload and returns a 2xx response on success.
 - [ ] Implement that endpoint on a trusted server or approved CRM/form provider. Validate all fields again on the server; client-side validation is not a security control.
