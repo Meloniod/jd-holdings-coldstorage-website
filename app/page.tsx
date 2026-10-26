@@ -1,182 +1,214 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { FormEvent, useState } from 'react';
+import Link from 'next/link';
 import {
-  Activity, Archive, ArrowDownToLine, ArrowLeftRight, BadgeCheck, Banknote, Bell,
-  Check, ChevronDown, ClipboardCheck, ClipboardList, Clock3, FileCheck2, FilePlus2,
-  FileText, Filter, LayoutDashboard, LogOut, Menu, MoreHorizontal, Plus, Search,
-  ShieldCheck, Snowflake, Users, X, AlertTriangle, CircleDollarSign, DoorOpen,
-  History, Building2, UserRound, Boxes, ThermometerSnowflake, RefreshCw
+  ArrowDownRight, ArrowRight, BadgeCheck, Building2, CheckCircle2, ChevronRight,
+  CircleDollarSign, ClipboardCheck, Handshake, Mail, MapPin, ShieldCheck,
+  Snowflake, Users, Warehouse, X
 } from 'lucide-react';
 
-type Role = 'Administrator' | 'Mortuary Staff' | 'Release Officer' | 'Finance';
-type CaseStatus = 'In storage' | 'Awaiting allocation' | 'Release pending' | 'Released';
-type CaseRecord = { id:string; name:string; receivedAt:string; receivedBy:string; referral:string; status:CaseStatus; position:string; notes:string; documents:string[]; rate:number; };
-type Position = { id:string; facility:string; unit:string; status:'Available'|'Occupied'|'Maintenance'; caseId:string|null; };
-type Release = { id:string; caseId:string; requestedBy:string; receivingParty:string; requestedDate:string; documents:boolean; verification:boolean; status:'Pending'|'Approved'|'Rejected'|'Completed'; approvedBy?:string; approvedAt?:string; checks?:string; };
-type Invoice = { id:string; caseId:string; from:string; to:string; days:number; rate:number; amount:number; status:'Outstanding'|'Paid'|'Overdue'; createdAt:string; };
-type Audit = { id:string; action:string; detail:string; actor:string; at:string; };
-type DocRecord = { id:string; caseId:string; filename:string; category:string; addedBy:string; at:string; };
+type LeadForm = {
+  name: string;
+  organisation: string;
+  email: string;
+  phone: string;
+  interest: string;
+  message: string;
+  consent: boolean;
+};
 
-const KEY='jd-coldstorage-demo-v1';
-const today=()=>new Date().toISOString().slice(0,10);
-const now=()=>new Date().toISOString();
-const uid=(prefix:string)=>prefix+'-'+Math.random().toString(36).slice(2,7).toUpperCase();
-const initialCases:CaseRecord[]=[
- {id:'JD-2026-0148',name:'Demo Case — Thabo Mokoena',receivedAt:'2026-10-24T08:40:00.000Z',receivedBy:'M. Dlamini',referral:'Demo General Hospital',status:'In storage',position:'A-01',notes:'Fictional demonstration record. Identification checks recorded for demo only.',documents:['intake-record-demo.pdf'],rate:480},
- {id:'JD-2026-0147',name:'Demo Case — Unidentified Person 0147',receivedAt:'2026-10-23T13:15:00.000Z',receivedBy:'S. Ndlovu',referral:'Demo Police Station',status:'In storage',position:'A-02',notes:'Fictional unidentified-person workflow example.',documents:[],rate:480},
- {id:'JD-2026-0146',name:'Demo Case — Lerato Nkosi',receivedAt:'2026-10-22T10:05:00.000Z',receivedBy:'M. Dlamini',referral:'Demo Family Contact',status:'Release pending',position:'B-01',notes:'Fictional case awaiting release officer review.',documents:['demo-authorisation.pdf'],rate:480},
- {id:'JD-2026-0145',name:'Demo Case — Sipho Khumalo',receivedAt:'2026-10-20T16:20:00.000Z',receivedBy:'T. Maseko',referral:'Demo Clinic',status:'In storage',position:'B-02',notes:'Fictional demonstration record.',documents:[],rate:480},
- {id:'JD-2026-0144',name:'Demo Case — Naledi Dube',receivedAt:'2026-10-18T09:30:00.000Z',receivedBy:'S. Ndlovu',referral:'Demo Hospital',status:'Released',position:'—',notes:'Fictional case, released in the demo seed.',documents:['demo-release-note.pdf'],rate:480},
-];
-const initialPositions:Position[]=[
- ...['A-01','A-02','A-03','A-04','A-05','A-06'].map((id,i)=>({id,facility:'JD Main Facility',unit:'Refrigeration Unit A',status:i<2?'Occupied' as const:'Available' as const,caseId:i===0?'JD-2026-0148':i===1?'JD-2026-0147':null})),
- ...['B-01','B-02','B-03','B-04','B-05','B-06'].map((id,i)=>({id,facility:'JD Main Facility',unit:'Refrigeration Unit B',status:i<2?'Occupied' as const:'Available' as const,caseId:i===0?'JD-2026-0146':i===1?'JD-2026-0145':null})),
- ...['C-01','C-02','C-03','C-04'].map((id,i)=>({id,facility:'JD Main Facility',unit:'Refrigeration Unit C',status:i===3?'Maintenance' as const:'Available' as const,caseId:null})),
-];
-const initialReleases:Release[]=[{id:'REL-0108',caseId:'JD-2026-0146',requestedBy:'M. Dlamini',receivingParty:'Demo Funeral Services',requestedDate:today(),documents:true,verification:false,status:'Pending'}];
-const initialInvoices:Invoice[]=[
- {id:'INV-0261',caseId:'JD-2026-0148',from:'2026-10-24',to:today(),days:3,rate:480,amount:1440,status:'Outstanding',createdAt:today()},
- {id:'INV-0260',caseId:'JD-2026-0147',from:'2026-10-23',to:today(),days:4,rate:480,amount:1920,status:'Outstanding',createdAt:today()},
- {id:'INV-0258',caseId:'JD-2026-0145',from:'2026-10-20',to:today(),days:6,rate:480,amount:2880,status:'Paid',createdAt:today()},
-];
-const initialDocs:DocRecord[]=[{id:'DOC-001',caseId:'JD-2026-0148',filename:'intake-record-demo.pdf',category:'Intake record',addedBy:'M. Dlamini',at:'2026-10-24T08:40:00.000Z'},{id:'DOC-002',caseId:'JD-2026-0146',filename:'demo-authorisation.pdf',category:'Release authorisation',addedBy:'M. Dlamini',at:'2026-10-26T07:40:00.000Z'}];
-const initialAudit:Audit[]=[
- {id:'AUD-501',action:'Release request submitted',detail:'REL-0108 · JD-2026-0146',actor:'M. Dlamini',at:'2026-10-26T07:40:00.000Z'},
- {id:'AUD-500',action:'Case registered',detail:'JD-2026-0148 · storage position A-01',actor:'M. Dlamini',at:'2026-10-24T08:40:00.000Z'},
- {id:'AUD-499',action:'Invoice created',detail:'INV-0261 · R1,440.00',actor:'Finance Demo',at:'2026-10-24T09:00:00.000Z'},
-];
-const navItems=[
- {id:'overview',label:'Overview',icon:LayoutDashboard,group:'WORKSPACE'},
- {id:'cases',label:'Case register',icon:ClipboardList,group:'WORKSPACE'},
- {id:'storage',label:'Cold storage',icon:Snowflake,group:'WORKSPACE'},
- {id:'releases',label:'Release management',icon:DoorOpen,group:'WORKSPACE'},
- {id:'documents',label:'Documents',icon:FileText,group:'RECORDS'},
- {id:'billing',label:'Billing & invoices',icon:CircleDollarSign,group:'RECORDS'},
- {id:'reports',label:'Reports',icon:Activity,group:'INSIGHTS'},
- {id:'audit',label:'Audit history',icon:History,group:'INSIGHTS'},
-];
-const roleOptions:Role[]=['Administrator','Mortuary Staff','Release Officer','Finance'];
-const money=(n:number)=>new Intl.NumberFormat('en-ZA',{style:'currency',currency:'ZAR',maximumFractionDigits:2}).format(n);
-const fmtDate=(d:string)=>d?new Date(d).toLocaleDateString('en-ZA',{day:'2-digit',month:'short',year:'numeric'}):'—';
-const fmtTime=(d:string)=>d?new Date(d).toLocaleString('en-ZA',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
-const daysBetween=(from:string,to:string)=>Math.max(1,Math.ceil((new Date(to).getTime()-new Date(from).getTime())/86400000)+1);
-const statusClass=(s:string)=>({ 'In storage':'occupied','Awaiting allocation':'pending','Release pending':'review','Released':'released','Available':'available','Occupied':'occupied','Maintenance':'overdue','Pending':'pending','Approved':'approved','Rejected':'rejected','Completed':'released','Outstanding':'pending','Paid':'paid','Overdue':'overdue','New':'new'} as Record<string,string>)[s]||'neutral';
+const initialForm: LeadForm = {
+  name: '', organisation: '', email: '', phone: '',
+  interest: 'Business partnership', message: '', consent: false,
+};
 
-export default function Home(){
- const [role,setRole]=useState<Role>('Administrator');
- const [active,setActive]=useState('overview');
- const [cases,setCases]=useState<CaseRecord[]>(initialCases);
- const [positions,setPositions]=useState<Position[]>(initialPositions);
- const [releases,setReleases]=useState<Release[]>(initialReleases);
- const [invoices,setInvoices]=useState<Invoice[]>(initialInvoices);
- const [docs,setDocs]=useState<DocRecord[]>(initialDocs);
- const [audit,setAudit]=useState<Audit[]>(initialAudit);
- const [ready,setReady]=useState(false);
- const [modal,setModal]=useState('');
- const [search,setSearch]=useState('');
- const [filter,setFilter]=useState('All');
- const [toast,setToast]=useState('');
- const [selectedCase,setSelectedCase]=useState('');
- const [newCase,setNewCase]=useState({name:'',receivedAt:now().slice(0,16),receivedBy:'Demo Staff',referral:'',notes:'',rate:'480'});
- const [alloc,setAlloc]=useState({caseId:'',positionId:''});
- const [releaseForm,setReleaseForm]=useState({caseId:'',receivingParty:'',requestedDate:today(),documents:false,verification:false});
- const [invoiceForm,setInvoiceForm]=useState({caseId:'',from:today(),to:today(),rate:'480'});
- const [docForm,setDocForm]=useState({caseId:'',category:'Intake record',filename:''});
- const [transferForm,setTransferForm]=useState({caseId:'',positionId:'',reason:''});
- const [showMenu,setShowMenu]=useState(false);
+const opportunities = [
+  {
+    number: '01',
+    icon: Warehouse,
+    title: 'Facility & service partnerships',
+    description: 'Explore facility partnerships, referral relationships, and service collaborations that can strengthen mortuary cold-storage access and continuity.',
+    tag: 'Operational partners',
+  },
+  {
+    number: '02',
+    icon: CircleDollarSign,
+    title: 'Investor conversations',
+    description: 'Start a confidential, exploratory conversation about funding needs, infrastructure opportunities, and the conditions required for responsible growth.',
+    tag: 'Capital & growth',
+  },
+  {
+    number: '03',
+    icon: Handshake,
+    title: 'Client & referral enquiries',
+    description: 'Discuss cold-storage service requirements, referral processes, service-level expectations, and potential ways to work together.',
+    tag: 'Service enquiries',
+  },
+];
 
- useEffect(()=>{try{const raw=localStorage.getItem(KEY);if(raw){const d=JSON.parse(raw);if(d.cases)setCases(d.cases);if(d.positions)setPositions(d.positions);if(d.releases)setReleases(d.releases);if(d.invoices)setInvoices(d.invoices);if(d.docs)setDocs(d.docs);if(d.audit)setAudit(d.audit);}}catch{}setReady(true)},[]);
- useEffect(()=>{if(ready){try{localStorage.setItem(KEY,JSON.stringify({cases,positions,releases,invoices,docs,audit}));}catch{setToast('Browser storage is full. Export records and reset demo data.')}}},[ready,cases,positions,releases,invoices,docs,audit]);
- useEffect(()=>{if(toast){const t=setTimeout(()=>setToast(''),3600);return()=>clearTimeout(t)}},[toast]);
- const actor=role==='Administrator'?'Admin Demo':role==='Finance'?'Finance Demo':role==='Release Officer'?'Release Officer Demo':'Mortuary Staff Demo';
- const addAudit=(action:string,detail:string)=>setAudit(p=>[{id:uid('AUD'),action,detail,actor,at:now()},...p]);
- const canEdit=role==='Administrator'||role==='Mortuary Staff';
- const canRelease=role==='Administrator'||role==='Release Officer';
- const canFinance=role==='Administrator'||role==='Finance';
- const canAdmin=role==='Administrator';
- const occupied=positions.filter(p=>p.status==='Occupied').length;
- const available=positions.filter(p=>p.status==='Available').length;
- const pendingReleases=releases.filter(r=>r.status==='Pending').length;
- const outstanding=invoices.filter(i=>i.status!=='Paid').reduce((sum,i)=>sum+i.amount,0);
- const activeCases=cases.filter(c=>c.status!=='Released').length;
- const filteredCases=useMemo(()=>cases.filter(c=>(c.id+' '+c.name+' '+c.referral+' '+c.position).toLowerCase().includes(search.toLowerCase())&&(filter==='All'||c.status===filter)),[cases,search,filter]);
- const caseName=(id:string)=>cases.find(c=>c.id===id)?.name||id;
- const go=(id:string)=>{setActive(id);setSearch('');setFilter('All');setShowMenu(false)};
- const exportCsv=(filename:string,rows:Record<string,string|number>[])=>{if(!rows.length){setToast('There are no records to export.');return}const cols=Object.keys(rows[0]);const esc=(v:unknown)=>'"'+String(v??'').replace(/"/g,'""')+'"';const csv=[cols.map(esc).join(','),...rows.map(r=>cols.map(c=>esc(r[c])).join(','))].join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));a.download=filename;a.click();URL.revokeObjectURL(a.href);setToast('CSV export prepared. Keep exported demo files private.');};
- const resetDemo=()=>{if(!window.confirm('Reset all browser-local records to the fictional starter dataset? This cannot be undone.'))return;setCases(initialCases);setPositions(initialPositions);setReleases(initialReleases);setInvoices(initialInvoices);setDocs(initialDocs);setAudit(initialAudit);setToast('Fictional demo data restored.');};
- const saveCase=()=>{if(!newCase.name.trim()||!newCase.referral.trim()){setToast('Enter a case name/designation and referring institution.');return}const id=uid('JD-2026');const c:CaseRecord={id,name:newCase.name.trim(),receivedAt:new Date(newCase.receivedAt).toISOString(),receivedBy:newCase.receivedBy.trim()||actor,referral:newCase.referral.trim(),status:'Awaiting allocation',position:'—',notes:newCase.notes.trim(),documents:[],rate:Math.max(0,Number(newCase.rate)||0)};setCases(p=>[c,...p]);addAudit('Case registered',id+' · awaiting storage allocation');setModal('');setNewCase({name:'',receivedAt:now().slice(0,16),receivedBy:'Demo Staff',referral:'',notes:'',rate:'480'});setToast('Case registered in this browser.');};
- const allocateCase=(transfer=false)=>{const caseId=transfer?transferForm.caseId:alloc.caseId;const positionId=transfer?transferForm.positionId:alloc.positionId;const pos=positions.find(p=>p.id===positionId);const c=cases.find(x=>x.id===caseId);if(!c||!pos){setToast('Select a case and storage position.');return}if(pos.status!=='Available'){setToast('That position is not available. Choose an available position.');return}if(c.status==='Released'){setToast('Released cases cannot be allocated.');return}const previous=c.position;setPositions(p=>p.map(x=>x.id===positionId?{...x,status:'Occupied',caseId}:x.id===previous?{...x,status:'Available',caseId:null}:x));setCases(p=>p.map(x=>x.id===caseId?{...x,position:positionId,status:x.status==='Release pending'?'Release pending':'In storage'}:x));addAudit(transfer?'Storage transfer recorded':'Storage position allocated',caseId+' · '+(previous!=='—'?previous+' → ':'')+positionId+(transferForm.reason&&transfer?' · '+transferForm.reason:''));setModal('');setToast(transfer?'Transfer recorded.':'Storage position allocated.');};
- const submitRelease=()=>{const c=cases.find(x=>x.id===releaseForm.caseId);if(!c||!releaseForm.receivingParty.trim()){setToast('Choose a case and enter the receiving party.');return}if(c.status==='Released'){setToast('This case has already been released.');return}const r:Release={id:uid('REL'),caseId:c.id,requestedBy:actor,receivingParty:releaseForm.receivingParty.trim(),requestedDate:releaseForm.requestedDate,documents:releaseForm.documents,verification:releaseForm.verification,status:'Pending'};setReleases(p=>[r,...p]);setCases(p=>p.map(x=>x.id===c.id?{...x,status:'Release pending'}:x));addAudit('Release request submitted',r.id+' · '+c.id);setModal('');setReleaseForm({caseId:'',receivingParty:'',requestedDate:today(),documents:false,verification:false});setToast('Release request submitted for authorised review.');};
- const decideRelease=(r:Release,approve:boolean)=>{if(!canRelease){setToast('Only a release officer or administrator can review requests.');return}if(approve&&(!r.documents||!r.verification)){setToast('Cannot approve: required documents and identity/authority verification must both be complete.');return}setReleases(p=>p.map(x=>x.id===r.id?{...x,status:approve?'Approved':'Rejected',approvedBy:actor,approvedAt:now(),checks:approve?'Required documents reviewed; authority and identity checks confirmed.':'Request rejected by authorised officer.'}:x));addAudit(approve?'Release approved':'Release rejected',r.id+' · '+r.caseId);setToast(approve?'Release approved. Completion still requires a separate action.':'Release request rejected.');};
- const completeRelease=(r:Release)=>{if(!canRelease){setToast('Only a release officer or administrator can complete releases.');return}if(r.status!=='Approved'||!r.documents||!r.verification){setToast('Release blocked: approval, documents and verification are required.');return}const c=cases.find(x=>x.id===r.caseId);setReleases(p=>p.map(x=>x.id===r.id?{...x,status:'Completed'}:x));setCases(p=>p.map(x=>x.id===r.caseId?{...x,status:'Released',position:'—'}:x));if(c?.position&&c.position!=='—')setPositions(p=>p.map(x=>x.id===c.position?{...x,status:'Available',caseId:null}:x));addAudit('Case release completed',r.id+' · '+r.caseId+' · received by '+r.receivingParty);setToast('Release completed and storage position freed.');};
- const saveDoc=()=>{if(!docForm.caseId||!docForm.filename.trim()){setToast('Select a case and enter a document filename.');return}const d:DocRecord={id:uid('DOC'),caseId:docForm.caseId,filename:docForm.filename.trim(),category:docForm.category,addedBy:actor,at:now()};setDocs(p=>[d,...p]);setCases(p=>p.map(c=>c.id===docForm.caseId?{...c,documents:[...c.documents,d.filename]}:c));addAudit('Document record added',d.filename+' · '+d.caseId);setModal('');setDocForm({caseId:'',category:'Intake record',filename:''});setToast('Document metadata saved. No file content was uploaded.');};
- const saveInvoice=()=>{if(!canFinance){setToast('Finance permission required.');return}const c=cases.find(x=>x.id===invoiceForm.caseId);if(!c){setToast('Select a case to bill.');return}if(!invoiceForm.from||!invoiceForm.to||invoiceForm.to<invoiceForm.from){setToast('Enter a valid billing period.');return}const overlap=invoices.some(i=>i.caseId===c.id&&i.from<=invoiceForm.to&&i.to>=invoiceForm.from);if(overlap){setToast('Duplicate/overlapping billing period blocked for this case.');return}const days=daysBetween(invoiceForm.from,invoiceForm.to),rate=Math.max(0,Number(invoiceForm.rate)||0);const inv:Invoice={id:uid('INV'),caseId:c.id,from:invoiceForm.from,to:invoiceForm.to,days,rate,amount:days*rate,status:'Outstanding',createdAt:today()};setInvoices(p=>[inv,...p]);addAudit('Invoice created',inv.id+' · '+money(inv.amount)+' · '+c.id);setModal('');setInvoiceForm({caseId:'',from:today(),to:today(),rate:'480'});setToast('Invoice recorded: '+money(inv.amount));};
- const markPaid=(inv:Invoice)=>{if(!canFinance){setToast('Finance permission required.');return}setInvoices(p=>p.map(x=>x.id===inv.id?{...x,status:'Paid'}:x));addAudit('Invoice marked paid',inv.id+' · '+money(inv.amount));setToast('Payment status recorded. No payment gateway is connected.');};
- const availableCases=cases.filter(c=>c.status!=='Released');
- const selectedNav=navItems.find(n=>n.id===active);
- const pageTitle=selectedNav?.label||'Overview';
- const openAllocate=(transfer=false)=>{if(transfer){setTransferForm({caseId:cases.find(c=>c.status==='In storage')?.id||'',positionId:positions.find(p=>p.status==='Available')?.id||'',reason:''});setModal('transfer')}else{setAlloc({caseId:cases.find(c=>c.status==='Awaiting allocation')?.id||cases.find(c=>c.status!=='Released')?.id||'',positionId:positions.find(p=>p.status==='Available')?.id||''});setModal('allocate')}};
+const principles = [
+  { icon: ShieldCheck, title: 'Respectful by design', copy: 'Sensitive operations call for discretion, clear procedures, and accountable handling of information.' },
+  { icon: ClipboardCheck, title: 'Operational visibility', copy: 'A structured workflow can support traceable intake, storage allocation, release checks, and administration.' },
+  { icon: Users, title: 'Partnership-led growth', copy: 'Sustainable service delivery depends on trusted relationships with facilities, professionals, and funding partners.' },
+];
 
- return <div className="app-shell">
-  <aside className="sidebar">
-   <div className="brand"><div className="brand-mark">JD</div><div><div className="brand-title">JD HOLDINGS</div><div className="brand-sub">COLD STORAGE OPERATIONS</div></div></div>
-   {['WORKSPACE','RECORDS','INSIGHTS'].map(group=><div key={group}><div className="nav-label">{group}</div>{navItems.filter(n=>n.group===group).map(n=>{const Icon=n.icon;return <button key={n.id} className={'nav-item '+(active===n.id?'active':'')} onClick={()=>go(n.id)}><Icon size={16}/>{n.label}{n.id==='releases'&&pendingReleases>0?<span style={{marginLeft:'auto',fontSize:10,background:'#fff2d5',color:'#805d20',padding:'2px 6px',borderRadius:10}}>{pendingReleases}</span>:null}</button>})}</div>)}
-   <div className="side-foot"><div style={{display:'flex',alignItems:'center',gap:7,marginBottom:7}}><ShieldCheck size={15}/> Demo environment</div>Fictional records only. Not for live mortuary operations.</div>
-  </aside>
-  <main className="main-area">
-   <header className="topbar"><div className="crumb"><span className="mobile-menu" style={{display:'inline-flex',marginRight:10}}><button className="icon-button" onClick={()=>setShowMenu(!showMenu)} aria-label="Open navigation"><Menu size={19}/></button></span>Operations <span style={{padding:'0 8px',color:'#b2bdc7'}}>/</span> <strong>{pageTitle}</strong></div><div className="top-actions"><span className="demo-badge">Demo data only</span><select aria-label="Switch demo role" className="role-select" value={role} onChange={e=>setRole(e.target.value as Role)}><option>Administrator</option><option>Mortuary Staff</option><option>Release Officer</option><option>Finance</option></select><div className="avatar">{role==='Administrator'?'AD':role==='Finance'?'FN':role==='Release Officer'?'RO':'MS'}</div></div></header>
-   {showMenu&&<div style={{background:'#fff',padding:12,borderBottom:'1px solid var(--line)',display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>{navItems.map(n=><button key={n.id} className="nav-item" style={{color:'var(--navy)'}} onClick={()=>go(n.id)}>{<n.icon size={15}/>} {n.label}</button>)}</div>}
-   <div className="content">
-    {active==='overview'&&<><div className="page-head"><div><div className="eyebrow">MONDAY · OPERATIONS SUMMARY</div><h1>Good morning, {role==='Administrator'?'Administrator':role==='Finance'?'Finance team':role==='Release Officer'?'Release officer':'Mortuary team'}.</h1><p>Here is the current operational picture for JD Holdings Cold Storage.</p></div><button className="button primary" onClick={()=>{setNewCase(p=>({...p,receivedBy:actor}));setModal('intake')}} disabled={!canEdit}><Plus size={15}/> Register intake</button></div>
-    <div className="notice warning"><strong>Prototype notice.</strong> This portal uses this browser’s local storage and fictional seed data. Do not enter real names, family details, identity numbers or actual mortuary records.</div>
-    <div className="stats-grid">
-     <Stat icon={<Boxes size={17}/>} label="Total positions" value={positions.length} foot="Configured storage positions"/>
-     <Stat icon={<Snowflake size={17}/>} label="Currently occupied" value={occupied} foot={available+' positions available'} />
-     <Stat icon={<ClipboardCheck size={17}/>} label="Active admissions" value={activeCases} foot="Cases not marked released"/>
-     <Stat icon={<DoorOpen size={17}/>} label="Pending release requests" value={pendingReleases} foot="Awaiting officer review"/>
-    </div>
-    <div className="dashboard-grid"><div>
-     <section className="panel"><div className="panel-head"><div><h2>Recent case activity</h2><p>Latest records across the facility</p></div><button className="button" onClick={()=>go('cases')}>View case register</button></div><div className="table-wrap"><table><thead><tr><th>Case / reference</th><th>Received</th><th>Storage</th><th>Status</th></tr></thead><tbody>{cases.slice(0,5).map(c=><tr key={c.id}><td><div className="case-id">{c.id}</div><div className="subcell">{c.name}</div></td><td>{fmtDate(c.receivedAt)}</td><td>{c.position}</td><td><span className={'status '+statusClass(c.status)}>{c.status}</span></td></tr>)}</tbody></table></div><div className="table-footer"><span>Showing {Math.min(5,cases.length)} recent cases</span><button className="button" onClick={()=>go('cases')}>Open register <ChevronDown size={13}/></button></div></section>
-     <section className="panel"><div className="panel-head"><div><h2>Storage utilisation</h2><p>Positions by refrigeration unit</p></div><button className="button" onClick={()=>go('storage')}>Manage positions</button></div><div className="panel-body">{['Refrigeration Unit A','Refrigeration Unit B','Refrigeration Unit C'].map(unit=>{const group=positions.filter(p=>p.unit===unit);const used=group.filter(p=>p.status==='Occupied').length;return <div key={unit} style={{marginBottom:18}}><div className="capacity-row"><span>{unit}</span><strong>{used} / {group.length} occupied</strong></div><div className="progress"><span style={{width:(group.length?used/group.length*100:0)+'%'}}/></div><div className="capacity-meta"><span>{group.filter(p=>p.status==='Available').length} available</span><span>{group.filter(p=>p.status==='Maintenance').length} in maintenance</span></div></div>})}</div></section>
-    </div><div>
-     <section className="panel"><div className="panel-head"><div><h2>Quick actions</h2><p>Common operational tasks</p></div></div><div className="panel-body"><div className="quick-actions"><button className="quick-action" onClick={()=>setModal('intake')} disabled={!canEdit}><span className="quick-icon"><FilePlus2 size={17}/></span>Register intake</button><button className="quick-action" onClick={()=>openAllocate()} disabled={!canEdit}><span className="quick-icon"><Snowflake size={17}/></span>Allocate storage</button><button className="quick-action" onClick={()=>{setReleaseForm({caseId:availableCases[0]?.id||'',receivingParty:'',requestedDate:today(),documents:false,verification:false});setModal('release')}} disabled={!canEdit}><span className="quick-icon"><FileCheck2 size={17}/></span>Request release</button><button className="quick-action" onClick={()=>go('billing')}><span className="quick-icon"><Banknote size={17}/></span>View billing</button></div></div></section>
-     <section className="panel"><div className="panel-head"><div><h2>Requires attention</h2><p>Tasks that may need staff follow-up</p></div><Bell size={16} color="#7b8794"/></div><div className="panel-body">
-      {pendingReleases>0&&<div className="task-row"><div className="task-dot"/><div><strong>{pendingReleases} release request{pendingReleases===1?'':'s'} awaiting review</strong><span>Check supporting documents and authority verification.</span><button className="button" style={{marginTop:8}} onClick={()=>go('releases')}>Review requests</button></div></div>}
-      {cases.some(c=>c.status==='Awaiting allocation')&&<div className="task-row"><div className="task-dot"/><div><strong>{cases.filter(c=>c.status==='Awaiting allocation').length} case(s) awaiting allocation</strong><span>Assign an available storage position.</span><button className="button" style={{marginTop:8}} onClick={()=>openAllocate()}>Allocate position</button></div></div>}
-      {outstanding>0&&<div className="task-row"><div className="task-dot"/><div><strong>Outstanding invoices</strong><span>{money(outstanding)} currently unpaid in demo records.</span><button className="button" style={{marginTop:8}} onClick={()=>go('billing')}>Open billing</button></div></div>}
-      {pendingReleases===0&&!cases.some(c=>c.status==='Awaiting allocation')&&outstanding===0&&<div className="empty-state">No outstanding tasks in this demo.</div>}
-     </div></section>
-     <section className="panel"><div className="panel-head"><div><h2>Finance snapshot</h2><p>Recorded invoices</p></div><CircleDollarSign size={17} color="#287d7a"/></div><div className="panel-body"><div className="capacity-row"><span>Outstanding balance</span><strong>{money(outstanding)}</strong></div><div className="capacity-row"><span>Paid invoices</span><strong>{invoices.filter(i=>i.status==='Paid').length}</strong></div><div className="capacity-row"><span>Open invoices</span><strong>{invoices.filter(i=>i.status!=='Paid').length}</strong></div><button className="button" style={{marginTop:8,width:'100%'}} onClick={()=>go('billing')}>View all invoices</button></div></section>
-    </div></div></>}
-    {active==='cases'&&<><PageHead eyebrow="CASE REGISTER" title="Case management" desc="Register, search and manage intake records and storage assignments." action={<button className="button primary" onClick={()=>setModal('intake')} disabled={!canEdit}><Plus size={15}/> Register case</button>}/><div className="notice warning">Use fictional data only. Case references are operational identifiers; avoid exposing sensitive details in exports or on shared screens.</div><div className="toolbar"><div style={{position:'relative'}}><Search size={15} style={{position:'absolute',left:11,top:11,color:'#8b96a2'}}/><input className="field-control search-input" style={{paddingLeft:34}} value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search case, name, referral…"/></div><select className="field-control" value={filter} onChange={e=>setFilter(e.target.value)}><option>All</option>{['In storage','Awaiting allocation','Release pending','Released'].map(s=><option key={s}>{s}</option>)}</select><button className="button" onClick={()=>exportCsv('jd-demo-cases.csv',filteredCases.map(c=>({reference:c.id,name:c.name,receivedAt:c.receivedAt,receivedBy:c.receivedBy,referral:c.referral,status:c.status,position:c.position,rate:c.rate}))) }><ArrowDownToLine size={14}/> Export CSV</button></div><section className="panel"><div className="table-wrap"><table><thead><tr><th>Case reference</th><th>Received</th><th>Referring institution</th><th>Position</th><th>Daily rate</th><th>Status</th><th>Action</th></tr></thead><tbody>{filteredCases.map(c=><tr key={c.id}><td><div className="case-id">{c.id}</div><div className="subcell">{c.name}</div></td><td>{fmtDate(c.receivedAt)}<div className="subcell">by {c.receivedBy}</div></td><td>{c.referral}</td><td>{c.position}</td><td>{money(c.rate)}</td><td><span className={'status '+statusClass(c.status)}>{c.status}</span></td><td><button className="button" onClick={()=>{setSelectedCase(c.id);setModal('caseDetail')}}>Details</button></td></tr>)}</tbody></table>{filteredCases.length===0&&<div className="empty-state"><strong>No matching cases</strong>Adjust your search or register a new case.</div>}</div><div className="table-footer"><span>{filteredCases.length} case record(s)</span><span>Fictional demo records</span></div></section></>}
-    {active==='storage'&&<><PageHead eyebrow="FACILITY OPERATIONS" title="Cold storage" desc="View position availability, allocate cases and record controlled transfers." action={<button className="button primary" onClick={()=>openAllocate()} disabled={!canEdit}><Plus size={15}/> Allocate position</button>}/><div className="stats-grid"><Stat icon={<Boxes size={17}/>} label="Total positions" value={positions.length} foot="Across 3 demo units"/><Stat icon={<Snowflake size={17}/>} label="Occupied" value={occupied} foot="Currently allocated"/><Stat icon={<Check size={17}/>} label="Available" value={available} foot="Ready for allocation"/><Stat icon={<AlertTriangle size={17}/>} label="Maintenance" value={positions.filter(p=>p.status==='Maintenance').length} foot="Not available for use"/></div><div className="toolbar"><button className="button" onClick={()=>openAllocate(true)} disabled={!canEdit}><ArrowLeftRight size={14}/> Record transfer</button><span className="form-note">Transfers require an available destination position.</span></div>{['Refrigeration Unit A','Refrigeration Unit B','Refrigeration Unit C'].map(unit=><section className="panel" key={unit}><div className="panel-head"><div><h2>{unit}</h2><p>{positions.filter(p=>p.unit===unit).length} configured positions · {positions.filter(p=>p.unit===unit&&p.status==='Available').length} available</p></div><span className="status neutral">JD Main Facility</span></div><div className="table-wrap"><table><thead><tr><th>Position ID</th><th>Facility</th><th>Case</th><th>Occupancy</th><th>Action</th></tr></thead><tbody>{positions.filter(p=>p.unit===unit).map(p=><tr key={p.id}><td><strong>{p.id}</strong></td><td>{p.facility}</td><td>{p.caseId?<><div className="case-id">{p.caseId}</div><div className="subcell">{caseName(p.caseId)}</div></>:'—'}</td><td><span className={'status '+statusClass(p.status)}>{p.status}</span></td><td>{p.status==='Available'?<button className="button" onClick={()=>{setAlloc({caseId:cases.find(c=>c.status==='Awaiting allocation')?.id||'',positionId:p.id});setModal('allocate')}} disabled={!canEdit}>Allocate</button>:p.status==='Occupied'?<button className="button" onClick={()=>openAllocate(true)} disabled={!canEdit}>Transfer</button>:<span className="form-note">Unavailable</span>}</td></tr>)}</tbody></table></div></section>)}</>}
-    {active==='releases'&&<><PageHead eyebrow="CONTROLLED HANDOVER" title="Release management" desc="Track release requests, verify documentation and require authorised approval before completion." action={<button className="button primary" onClick={()=>{setReleaseForm({caseId:availableCases[0]?.id||'',receivingParty:'',requestedDate:today(),documents:false,verification:false});setModal('release')}} disabled={!canEdit}><Plus size={15}/> New request</button>}/><div className="notice warning">Approval is a controlled workflow, not a legal determination. Validate your facility’s required documents, identity checks and release procedures with your compliance adviser.</div><section className="panel"><div className="panel-head"><div><h2>Release requests</h2><p>{pendingReleases} awaiting authorised review</p></div><select className="field-control" value={filter} onChange={e=>setFilter(e.target.value)}><option>All</option>{['Pending','Approved','Rejected','Completed'].map(s=><option key={s}>{s}</option>)}</select></div><div className="table-wrap"><table><thead><tr><th>Request</th><th>Case</th><th>Receiving party</th><th>Requested date</th><th>Checks</th><th>Status</th><th>Action</th></tr></thead><tbody>{releases.filter(r=>filter==='All'||r.status===filter).map(r=><tr key={r.id}><td><div className="case-id">{r.id}</div><div className="subcell">By {r.requestedBy}</div></td><td><div className="case-id">{r.caseId}</div><div className="subcell">{caseName(r.caseId)}</div></td><td>{r.receivingParty}</td><td>{fmtDate(r.requestedDate)}</td><td><div className="subcell">Documents: {r.documents?'Complete':'Missing'}</div><div className="subcell">Verification: {r.verification?'Complete':'Pending'}</div></td><td><span className={'status '+statusClass(r.status)}>{r.status}</span></td><td>{r.status==='Pending'?<div style={{display:'flex',gap:5}}><button className="button" onClick={()=>{if(!canRelease){setToast('Release officer role required.');return}setReleases(p=>p.map(x=>x.id===r.id?{...x,documents:true,verification:true}:x));addAudit('Release checks recorded',r.id+' · demo checks marked complete');setToast('Demo checks recorded. Review evidence before approval.')}} disabled={!canRelease}>Mark checks</button><button className="button primary" onClick={()=>decideRelease({...r,documents:r.documents,verification:r.verification},true)} disabled={!canRelease||!r.documents||!r.verification}>Approve</button><button className="button danger" onClick={()=>decideRelease(r,false)} disabled={!canRelease}>Reject</button></div>:r.status==='Approved'?<button className="button teal" onClick={()=>completeRelease(r)} disabled={!canRelease}>Complete release</button>:<span className="form-note">{r.approvedBy||'—'}</span>}</td></tr>)}</tbody></table>{releases.filter(r=>filter==='All'||r.status===filter).length===0&&<div className="empty-state"><strong>No requests in this view</strong>New release requests will appear here.</div>}</div></section></>}
-    {active==='documents'&&<><PageHead eyebrow="RESTRICTED RECORDS" title="Documents register" desc="Track document metadata linked to cases. Secure private-file storage is not connected in this local prototype." action={<button className="button primary" onClick={()=>setModal('document')} disabled={!canEdit}><Plus size={15}/> Add document record</button>}/><div className="notice warning"><strong>Not a secure document vault.</strong> This screen stores document names and categories only. File content, signed URLs, private storage policies and malware scanning require a server-side storage integration. Do not upload or link real records here.</div><section className="panel"><div className="panel-head"><div><h2>Document index</h2><p>Metadata attached to fictional case records</p></div><span className="status neutral">{docs.length} records</span></div><div className="table-wrap"><table><thead><tr><th>Document</th><th>Case reference</th><th>Category</th><th>Added by</th><th>Added</th><th>File access</th></tr></thead><tbody>{docs.map(d=><tr key={d.id}><td><div style={{display:'flex',alignItems:'center',gap:9}}><FileText size={17} color="#287d7a"/><div><div className="case-id">{d.filename}</div><div className="subcell">{d.id}</div></div></div></td><td>{d.caseId}</td><td>{d.category}</td><td>{d.addedBy}</td><td>{fmtDate(d.at)}</td><td><span className="status neutral">Metadata only</span></td></tr>)}</tbody></table>{docs.length===0&&<div className="empty-state">No document records yet.</div>}</div></section></>}
-    {active==='billing'&&<><PageHead eyebrow="FINANCE WORKSPACE" title="Billing & invoices" desc="Calculate storage charges by date range, prevent overlapping periods and track payment status." action={<button className="button primary" onClick={()=>setModal('invoice')} disabled={!canFinance}><Plus size={15}/> Create invoice</button>}/><div className="stats-grid"><Stat icon={<Banknote size={17}/>} label="Outstanding" value={money(outstanding)} foot="Unpaid demo invoices"/><Stat icon={<Check size={17}/>} label="Paid invoices" value={invoices.filter(i=>i.status==='Paid').length} foot="Marked paid manually"/><Stat icon={<FileText size={17}/>} label="Total invoices" value={invoices.length} foot="Across all demo cases"/><Stat icon={<Clock3 size={17}/>} label="Storage rate" value={money(480)} foot="Illustrative default daily rate"/></div><div className="notice">Charges are calculated as inclusive calendar days × the daily rate. The prototype blocks overlapping date ranges for the same case; confirm the facility’s billing policy before production use.</div><section className="panel"><div className="panel-head"><div><h2>Invoice register</h2><p>Billing history and payment tracking</p></div><button className="button" onClick={()=>exportCsv('jd-demo-invoices.csv',invoices.map(i=>({invoice:i.id,caseReference:i.caseId,periodFrom:i.from,periodTo:i.to,days:i.days,dailyRate:i.rate,amount:i.amount,status:i.status,created:i.createdAt}))) }><ArrowDownToLine size={14}/> Export CSV</button></div><div className="table-wrap"><table><thead><tr><th>Invoice</th><th>Case</th><th>Billing period</th><th>Days</th><th>Daily rate</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody>{invoices.map(i=><tr key={i.id}><td><div className="case-id">{i.id}</div><div className="subcell">Created {fmtDate(i.createdAt)}</div></td><td><div className="case-id">{i.caseId}</div><div className="subcell">{caseName(i.caseId)}</div></td><td>{fmtDate(i.from)} – {fmtDate(i.to)}</td><td>{i.days}</td><td>{money(i.rate)}</td><td><strong>{money(i.amount)}</strong></td><td><span className={'status '+statusClass(i.status)}>{i.status}</span></td><td>{i.status!=='Paid'?<button className="button" onClick={()=>markPaid(i)} disabled={!canFinance}><Check size={13}/> Mark paid</button>:<span className="form-note">Recorded</span>}</td></tr>)}</tbody></table>{invoices.length===0&&<div className="empty-state">No invoices recorded yet.</div>}</div><div className="table-footer"><span>{invoices.length} invoice(s)</span><span>Payment gateway not connected</span></div></section></>}
-    {active==='reports'&&<><PageHead eyebrow="OPERATIONS INSIGHTS" title="Reports" desc="Review occupancy, admissions, releases, storage duration and invoice exposure." action={<button className="button" onClick={()=>exportCsv('jd-demo-occupancy.csv',positions.map(p=>({facility:p.facility,unit:p.unit,position:p.id,status:p.status,caseReference:p.caseId||''}))) }><ArrowDownToLine size={14}/> Export occupancy</button>}/><div className="report-grid"><ReportTile title="Occupancy rate" value={Math.round(occupied/Math.max(1,positions.length)*100)+'%'} detail={occupied+' of '+positions.length+' positions occupied'}/><ReportTile title="Admissions" value={cases.length} detail="All case records, including released cases"/><ReportTile title="Releases completed" value={releases.filter(r=>r.status==='Completed').length+cases.filter(c=>c.status==='Released').length} detail="Workflow and seed records may overlap"/><ReportTile title="Outstanding invoices" value={money(outstanding)} detail={invoices.filter(i=>i.status!=='Paid').length+' open invoice(s)'}/><ReportTile title="Available positions" value={available} detail="Positions ready for allocation"/><ReportTile title="Cases awaiting allocation" value={cases.filter(c=>c.status==='Awaiting allocation').length} detail="Operational follow-up queue"/></div><section className="panel" style={{marginTop:18}}><div className="panel-head"><div><h2>Storage utilisation by unit</h2><p>Current position status</p></div></div><div className="panel-body">{['Refrigeration Unit A','Refrigeration Unit B','Refrigeration Unit C'].map(unit=>{const ps=positions.filter(p=>p.unit===unit);const occ=ps.filter(p=>p.status==='Occupied').length;return <div key={unit} style={{marginBottom:20}}><div className="capacity-row"><span>{unit}</span><strong>{Math.round(occ/Math.max(1,ps.length)*100)}% occupied</strong></div><div className="progress"><span style={{width:(occ/Math.max(1,ps.length)*100)+'%'}}/></div><div className="capacity-meta"><span>{occ} occupied</span><span>{ps.filter(p=>p.status==='Available').length} available</span><span>{ps.filter(p=>p.status==='Maintenance').length} maintenance</span></div></div>})}</div></section><div className="notice warning">Reports and CSV exports are generated in this browser from demo records. In production, enforce export permissions server-side and review exported data as sensitive.</div></>}
-    {active==='audit'&&<><PageHead eyebrow="ACCOUNTABILITY" title="Audit history" desc="Review operational changes recorded by this browser demo. Audit events are not tamper-proof in local storage." action={<button className="button" onClick={()=>exportCsv('jd-demo-audit.csv',audit.map(a=>({event:a.id,action:a.action,detail:a.detail,actor:a.actor,timestamp:a.at}))) }><ArrowDownToLine size={14}/> Export audit</button>}/><div className="notice warning">Production audit events must be appended server-side, protected against modification, timestamped reliably and retained according to an approved policy. Browser-local history is illustrative only.</div><section className="panel"><div className="panel-head"><div><h2>Recent events</h2><p>{audit.length} recorded event(s), newest first</p></div><button className="button" onClick={()=>{setAudit([]);setToast('Demo audit list cleared from this browser.')}}>Clear demo events</button></div><div className="panel-body">{audit.length?audit.map(a=><div className="audit-entry" key={a.id}><div className="audit-symbol"><History size={15}/></div><div style={{flex:1}}><strong>{a.action}</strong><p>{a.detail}</p><time>{a.actor} · {fmtTime(a.at)} · {a.id}</time></div></div>):<div className="empty-state"><strong>No audit events</strong>Actions performed in the demo will appear here.</div>}</div></section></>}
-    <div className="footer-note">JD Holdings Cold Storage Portal · MVP prototype · fictional data only · Not for clinical or operational use. <button onClick={resetDemo} style={{border:0,background:'transparent',color:'#287d7a',textDecoration:'underline',fontSize:10}}>Reset demo data</button></div>
-   </div>
-  </main>
-  <nav className="mobile-bottom">{navItems.filter(n=>['overview','cases','storage','releases','billing'].includes(n.id)).map(n=>{const Icon=n.icon;return <button key={n.id} className={'mobile-nav '+(active===n.id?'active':'')} onClick={()=>go(n.id)}><Icon size={18}/>{n.label}</button>})}</nav>
-  {toast&&<div role="status" aria-live="polite" style={{position:'fixed',right:20,bottom:80,zIndex:100,background:'#17283f',color:'#fff',padding:'13px 17px',borderRadius:8,fontSize:12,boxShadow:'0 10px 30px #0002',maxWidth:360}}>{toast}</div>}
-  {modal&&<div className="modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setModal('')}}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-   <div className="modal-head"><div><h2 id="modal-title">{modal==='intake'?'Register a new case':modal==='allocate'?'Allocate storage position':modal==='transfer'?'Record storage transfer':modal==='release'?'Submit release request':modal==='invoice'?'Create storage invoice':modal==='document'?'Add document record':'Case details'}</h2><p>{modal==='intake'?'Record intake details for a fictional demo case.':modal==='allocate'?'Assign an available position to an active case.':modal==='transfer'?'Record movement to a different available position.':modal==='release'?'Submit for controlled review by an authorised release officer.':modal==='invoice'?'Calculate a date-based storage charge.':modal==='document'?'Save document metadata; file content is not uploaded.':'View a case summary and linked records.'}</p></div><button className="icon-button" onClick={()=>setModal('')} aria-label="Close dialog"><X size={20}/></button></div>
-   <div className="modal-content">
-    <div className="notice warning">Demo only — do not enter real personal, identity, family or mortuary information.</div>
-    {modal==='intake'&&<><div className="form-grid"><Field label="Full legal name / designation *"><input value={newCase.name} onChange={e=>setNewCase(p=>({...p,name:e.target.value}))} placeholder="e.g. Demo Case — Unidentified 0150" autoFocus/></Field><Field label="Date and time received *"><input type="datetime-local" value={newCase.receivedAt} onChange={e=>setNewCase(p=>({...p,receivedAt:e.target.value}))}/></Field><Field label="Receiving staff member"><input value={newCase.receivedBy} onChange={e=>setNewCase(p=>({...p,receivedBy:e.target.value}))}/></Field><Field label="Referring institution / contact *"><input value={newCase.referral} onChange={e=>setNewCase(p=>({...p,referral:e.target.value}))} placeholder="Fictional institution"/></Field><Field label="Daily storage rate (ZAR)"><input type="number" min="0" step="0.01" value={newCase.rate} onChange={e=>setNewCase(p=>({...p,rate:e.target.value}))}/></Field><Field label="Administrative notes" full><textarea value={newCase.notes} onChange={e=>setNewCase(p=>({...p,notes:e.target.value}))} placeholder="Non-sensitive demo notes only"/></Field></div><div className="form-note" style={{marginTop:12}}>A unique reference will be generated automatically. This demo does not verify identities or legal documentation.</div><div className="form-actions"><button className="button" onClick={()=>setModal('')}>Cancel</button><button className="button primary" onClick={saveCase}><Plus size={14}/> Register case</button></div></>}
-    {(modal==='allocate'||modal==='transfer')&&<><div className="form-grid"><Field label="Case *"><select value={modal==='transfer'?transferForm.caseId:alloc.caseId} onChange={e=>modal==='transfer'?setTransferForm(p=>({...p,caseId:e.target.value})):setAlloc(p=>({...p,caseId:e.target.value}))}><option value="">Select active case</option>{availableCases.filter(c=>modal!=='allocate'||c.status==='Awaiting allocation'||c.position==='—').map(c=><option key={c.id} value={c.id}>{c.id} · {c.name}</option>)}</select></Field><Field label="Destination position *"><select value={modal==='transfer'?transferForm.positionId:alloc.positionId} onChange={e=>modal==='transfer'?setTransferForm(p=>({...p,positionId:e.target.value})):setAlloc(p=>({...p,positionId:e.target.value}))}><option value="">Select available position</option>{positions.filter(p=>p.status==='Available').map(p=><option key={p.id} value={p.id}>{p.id} · {p.unit}</option>)}</select></Field>{modal==='transfer'&&<Field label="Reason for transfer *" full><textarea value={transferForm.reason} onChange={e=>setTransferForm(p=>({...p,reason:e.target.value}))} placeholder="Reason for demo transfer"/></Field>}</div><div className="notice" style={{marginTop:14}}>Occupied positions cannot be selected. Successful allocation records a timestamped event and updates the case and position together in this browser.</div><div className="form-actions"><button className="button" onClick={()=>setModal('')}>Cancel</button><button className="button primary" onClick={()=>{if(modal==='transfer'&&!transferForm.reason.trim()){setToast('Enter a transfer reason.');return}allocateCase(modal==='transfer')}}>{modal==='transfer'?'Record transfer':'Allocate position'}</button></div></>}
-    {modal==='release'&&<><div className="form-grid"><Field label="Case to release *"><select value={releaseForm.caseId} onChange={e=>setReleaseForm(p=>({...p,caseId:e.target.value}))}><option value="">Select active case</option>{availableCases.map(c=><option key={c.id} value={c.id}>{c.id} · {c.name}</option>)}</select></Field><Field label="Requested release date *"><input type="date" value={releaseForm.requestedDate} onChange={e=>setReleaseForm(p=>({...p,requestedDate:e.target.value}))}/></Field><Field label="Receiving party / funeral service *" full><input value={releaseForm.receivingParty} onChange={e=>setReleaseForm(p=>({...p,receivingParty:e.target.value}))} placeholder="Fictional receiving organisation"/></Field><Field label="Required documents reviewed"><label style={{display:'flex',gap:9,alignItems:'center',fontWeight:400}}><input type="checkbox" checked={releaseForm.documents} onChange={e=>setReleaseForm(p=>({...p,documents:e.target.checked}))}/> Supporting documents complete</label></Field><Field label="Identity and authority verification"><label style={{display:'flex',gap:9,alignItems:'center',fontWeight:400}}><input type="checkbox" checked={releaseForm.verification} onChange={e=>setReleaseForm(p=>({...p,verification:e.target.checked}))}/> Checks marked complete</label></Field></div><div className="notice warning" style={{marginTop:14}}>Only an authorised Release Officer or Administrator can approve/reject. Completion is blocked until approval and both checks are recorded. Checkbox status is illustrative and does not replace evidence review.</div><div className="form-actions"><button className="button" onClick={()=>setModal('')}>Cancel</button><button className="button primary" onClick={submitRelease}>Submit request</button></div></>}
-    {modal==='invoice'&&<><div className="form-grid"><Field label="Case to bill *"><select value={invoiceForm.caseId} onChange={e=>setInvoiceForm(p=>({...p,caseId:e.target.value}))}><option value="">Select case</option>{cases.filter(c=>c.status!=='Released').map(c=><option key={c.id} value={c.id}>{c.id} · {c.name}</option>)}</select></Field><Field label="Daily storage rate (ZAR) *"><input type="number" min="0" step="0.01" value={invoiceForm.rate} onChange={e=>setInvoiceForm(p=>({...p,rate:e.target.value}))}/></Field><Field label="Period start *"><input type="date" value={invoiceForm.from} onChange={e=>setInvoiceForm(p=>({...p,from:e.target.value}))}/></Field><Field label="Period end *"><input type="date" value={invoiceForm.to} onChange={e=>setInvoiceForm(p=>({...p,to:e.target.value}))}/></Field></div>{invoiceForm.from&&invoiceForm.to&&invoiceForm.to>=invoiceForm.from&&<div className="notice" style={{marginTop:14}}>Estimated total: <strong>{money(daysBetween(invoiceForm.from,invoiceForm.to)*Math.max(0,Number(invoiceForm.rate)||0))}</strong> · {daysBetween(invoiceForm.from,invoiceForm.to)} inclusive day(s).</div>}<div className="form-actions"><button className="button" onClick={()=>setModal('')}>Cancel</button><button className="button primary" onClick={saveInvoice} disabled={!canFinance}>Create invoice</button></div></>}
-    {modal==='document'&&<><div className="form-grid"><Field label="Linked case *"><select value={docForm.caseId} onChange={e=>setDocForm(p=>({...p,caseId:e.target.value}))}><option value="">Select case</option>{cases.map(c=><option key={c.id} value={c.id}>{c.id} · {c.name}</option>)}</select></Field><Field label="Document category"><select value={docForm.category} onChange={e=>setDocForm(p=>({...p,category:e.target.value}))}>{['Intake record','Identification reference','Release authorisation','Referral documentation','Billing record','Other'].map(s=><option key={s}>{s}</option>)}</select></Field><Field label="Filename / document reference *" full><input value={docForm.filename} onChange={e=>setDocForm(p=>({...p,filename:e.target.value}))} placeholder="e.g. demo-intake-record.pdf"/></Field></div><div className="notice warning" style={{marginTop:14}}>This records metadata only — it does not upload a file. Private Supabase Storage, signed URLs, server-side permission checks, file-size/type validation and malware scanning must be added before storing real documents.</div><div className="form-actions"><button className="button" onClick={()=>setModal('')}>Cancel</button><button className="button primary" onClick={saveDoc}>Save document record</button></div></>}
-    {modal==='caseDetail'&&(()=>{const c=cases.find(x=>x.id===selectedCase);if(!c)return <div className="empty-state">Case not found.</div>;return <><div className="report-grid" style={{gridTemplateColumns:'1fr 1fr'}}><ReportTile title="Case reference" value={c.id} detail="Unique demo identifier"/><ReportTile title="Case status" value={c.status} detail={'Storage: '+c.position}/></div><div className="form-grid" style={{marginTop:18}}><Field label="Case name / designation"><div className="field-control">{c.name}</div></Field><Field label="Received date"><div className="field-control">{fmtDate(c.receivedAt)}</div></Field><Field label="Received by"><div className="field-control">{c.receivedBy}</div></Field><Field label="Referring institution"><div className="field-control">{c.referral}</div></Field><Field label="Daily storage rate"><div className="field-control">{money(c.rate)}</div></Field><Field label="Linked documents"><div className="field-control">{c.documents.length} document metadata record(s)</div></Field><Field label="Administrative notes" full><div className="field-control" style={{whiteSpace:'normal'}}>{c.notes||'No notes.'}</div></Field></div><div className="panel" style={{marginTop:16,marginBottom:0}}><div className="panel-head"><h2>Related release requests</h2></div><div className="panel-body">{releases.filter(r=>r.caseId===c.id).map(r=><div key={r.id} className="task-row"><div><strong>{r.id} · {r.status}</strong><span>{r.receivingParty} · {fmtDate(r.requestedDate)}</span></div></div>)}{!releases.some(r=>r.caseId===c.id)&&<div className="form-note">No release requests for this case.</div>}</div></div><div className="form-actions"><button className="button" onClick={()=>setModal('')}>Close</button>{canEdit&&c.status!=='Released'&&<button className="button primary" onClick={()=>{setAlloc({caseId:c.id,positionId:positions.find(p=>p.status==='Available')?.id||''});setModal('allocate')}}>Allocate / reallocate</button>}</div></>})()}
-   </div>
-  </div></div>}
- </div>;
+export default function OpportunitiesPage() {
+  const [form, setForm] = useState<LeadForm>(initialForm);
+  const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'local' | 'error'>('idle');
+  const [statusMessage, setStatusMessage] = useState('');
+
+  function update<K extends keyof LeadForm>(key: K, value: LeadForm[K]) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStatus('sending');
+    setStatusMessage('');
+
+    const lead = {
+      ...form,
+      source: 'JD Holdings opportunities website',
+      submittedAt: new Date().toISOString(),
+      id: typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `lead-${Date.now()}`,
+    };
+
+    const endpoint = process.env.NEXT_PUBLIC_LEAD_ENDPOINT;
+    if (endpoint) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(lead),
+        });
+        if (!response.ok) throw new Error('The lead service returned an error.');
+        setStatus('success');
+        setStatusMessage('Thank you. Your enquiry has been sent to our team.');
+        setForm(initialForm);
+      } catch {
+        setStatus('error');
+        setStatusMessage('We could not send your enquiry right now. Please try again later or use the contact route provided to you.');
+      }
+      return;
+    }
+
+    // Local fallback is for preview/testing only; it does not notify the business.
+    try {
+      const key = 'jd-holdings-website-leads-preview';
+      const existing = JSON.parse(window.localStorage.getItem(key) || '[]') as unknown[];
+      window.localStorage.setItem(key, JSON.stringify([...existing, lead]));
+      setStatus('local');
+      setStatusMessage('Preview only: this enquiry is saved in this browser and has not been sent to JD Holdings. Configure NEXT_PUBLIC_LEAD_ENDPOINT before publishing the form.');
+      setForm(initialForm);
+    } catch {
+      setStatus('error');
+      setStatusMessage('This browser could not save the preview enquiry. Please try again.');
+    }
+  }
+
+  return (
+    <main className="opportunity-site">
+      <header className="op-nav">
+        <a className="op-brand" href="#top" aria-label="JD Holdings home">
+          <span className="op-brand-mark"><Snowflake size={24} strokeWidth={1.8} /></span>
+          <span><strong>JD HOLDINGS</strong><small>COLD STORAGE SOLUTIONS</small></span>
+        </a>
+        <nav className="op-nav-links" aria-label="Main navigation">
+          <a href="#approach">Our approach</a>
+          <a href="#opportunities">Opportunities</a>
+          <a href="#contact">Contact</a>
+        </nav>
+        <a className="op-nav-cta" href="#contact">Start a conversation <ArrowRight size={16} /></a>
+      </header>
+
+      <section className="op-hero" id="top">
+        <div className="op-hero-grid">
+          <div className="op-hero-copy">
+            <div className="op-eyebrow"><span /> INFRASTRUCTURE · CARE · ACCOUNTABILITY</div>
+            <h1>Building trusted pathways for <em>essential care.</em></h1>
+            <p className="op-hero-intro">JD Holdings is opening conversations with service partners, facilities, and potential investors around responsible mortuary cold-storage solutions and the operational systems that support them.</p>
+            <div className="op-hero-actions">
+              <a className="op-button op-button-light" href="#contact">Discuss an opportunity <ArrowRight size={17} /></a>
+              <a className="op-text-link" href="#approach">Explore our approach <ArrowDownRight size={17} /></a>
+            </div>
+            <div className="op-trust-line"><ShieldCheck size={17} /><span>Professional, discreet, partnership-focused conversations</span></div>
+          </div>
+          <div className="op-hero-art" aria-label="Abstract illustration of temperature-controlled storage infrastructure">
+            <div className="op-art-glow" />
+            <div className="op-art-frame">
+              <div className="op-art-top"><span>CONTROLLED ENVIRONMENT</span><span className="op-status-dot" /> <span>CONCEPT</span></div>
+              <div className="op-cold-room">
+                <div className="op-room-light" />
+                <div className="op-room-unit"><div /><div /><div /><div /></div>
+                <div className="op-room-floor" />
+                <div className="op-temp-badge"><Snowflake size={20} /><span><small>ENVIRONMENT</small><strong>Temperature controlled</strong></span></div>
+              </div>
+              <div className="op-art-bottom"><span>CARE IN EVERY DETAIL</span><span>JD / 01</span></div>
+            </div>
+            <div className="op-floating-note"><BadgeCheck size={19} /><span><strong>Process-led operations</strong><small>Designed around traceability</small></span></div>
+          </div>
+        </div>
+        <div className="op-hero-foot"><span>01 / A MORE CONNECTED APPROACH</span><span>Scroll to explore <ChevronRight size={15} /></span></div>
+      </section>
+
+      <section className="op-intro-strip" id="approach">
+        <div><span className="op-section-kicker">OUR APPROACH</span><h2>Essential services deserve <em>thoughtful infrastructure.</em></h2></div>
+        <p>We believe dependable cold-storage services are supported by clear processes, accountable teams, and the right operational partnerships. We welcome conversations with organisations that share that focus.</p>
+      </section>
+
+      <section className="op-principles">
+        {principles.map((item, index) => {
+          const Icon = item.icon;
+          return <article className="op-principle" key={item.title}><div className="op-principle-top"><Icon size={22} /><span>0{index + 1}</span></div><h3>{item.title}</h3><p>{item.copy}</p></article>;
+        })}
+      </section>
+
+      <section className="op-opportunities" id="opportunities">
+        <div className="op-section-heading"><div><span className="op-section-kicker">WAYS TO WORK TOGETHER</span><h2>Opportunity starts<br />with a conversation.</h2></div><p>Whether you represent a facility, are exploring a service relationship, or want to understand potential investment opportunities, tell us what you have in mind.</p></div>
+        <div className="op-opportunity-grid">
+          {opportunities.map((item) => {
+            const Icon = item.icon;
+            return <article className="opportunity-card" key={item.number}><div className="op-card-meta"><span>{item.number}</span><Icon size={23} /></div><span className="op-card-tag">{item.tag}</span><h3>{item.title}</h3><p>{item.description}</p><a href="#contact" onClick={() => update('interest', item.number === '01' ? 'Facility or service partnership' : item.number === '02' ? 'Investment opportunity' : 'Client or referral enquiry')}>Explore this path <ArrowRight size={16} /></a></article>;
+          })}
+        </div>
+        <div className="op-investor-note"><div className="op-investor-icon"><Building2 size={23} /></div><div><strong>For potential investors</strong><p>We welcome initial discussions to understand strategic fit, experience, investment criteria, and information requirements. Any investment opportunity is subject to due diligence, appropriate approvals, and definitive documentation. No financial return is promised or implied.</p></div><a href="#contact">Make an introduction <ArrowRight size={16} /></a></div>
+      </section>
+
+      <section className="op-contact-section" id="contact">
+        <div className="op-contact-copy">
+          <span className="op-section-kicker">LET'S CONNECT</span>
+          <h2>Tell us what a<br /><em>partnership could look like.</em></h2>
+          <p>Share a few details and the kind of opportunity you would like to discuss. Please do not include sensitive personal, patient, or case information in this form.</p>
+          <div className="op-contact-detail"><span><Mail size={18} /></span><div><strong>Business enquiries</strong><small>Use the form to introduce your organisation and goals.</small></div></div>
+          <div className="op-contact-detail"><span><MapPin size={18} /></span><div><strong>South Africa</strong><small>Location and service coverage can be discussed during initial contact.</small></div></div>
+          <div className="op-contact-security"><ShieldCheck size={18} /><span>Enquiries are intended for business development. Do not submit confidential documents, identity numbers, or payment details.</span></div>
+        </div>
+        <form className="op-lead-form" onSubmit={handleSubmit}>
+          <div className="op-form-heading"><span>ENQUIRY FORM</span><span>01 — 06</span></div>
+          <h3>Start a conversation</h3>
+          <p>Fields marked with * are required.</p>
+          <div className="op-form-grid">
+            <label>Full name *<input required maxLength={120} autoComplete="name" value={form.name} onChange={(e) => update('name', e.target.value)} placeholder="Your name" /></label>
+            <label>Organisation<input maxLength={160} autoComplete="organization" value={form.organisation} onChange={(e) => update('organisation', e.target.value)} placeholder="Company or organisation" /></label>
+            <label>Business email *<input required type="email" maxLength={254} autoComplete="email" value={form.email} onChange={(e) => update('email', e.target.value)} placeholder="name@company.co.za" /></label>
+            <label>Phone number<input type="tel" maxLength={40} autoComplete="tel" value={form.phone} onChange={(e) => update('phone', e.target.value)} placeholder="+27 ..." /></label>
+            <label className="op-form-wide">I am interested in *<select required value={form.interest} onChange={(e) => update('interest', e.target.value)}><option>Business partnership</option><option>Facility or service partnership</option><option>Investment opportunity</option><option>Client or referral enquiry</option><option>Technology or operational collaboration</option><option>Other business enquiry</option></select></label>
+            <label className="op-form-wide">Tell us a little about your enquiry *<textarea required minLength={10} maxLength={2000} rows={4} value={form.message} onChange={(e) => update('message', e.target.value)} placeholder="What would you like to explore together?" /></label>
+          </div>
+          <label className="op-consent"><input type="checkbox" required checked={form.consent} onChange={(e) => update('consent', e.target.checked)} /><span>I agree that JD Holdings may use these details to respond to this business enquiry. *</span></label>
+          <button className="op-submit" type="submit" disabled={status === 'sending'}>{status === 'sending' ? 'Sending enquiry…' : 'Send business enquiry'} <ArrowRight size={17} /></button>
+          {statusMessage && <div className={`op-form-status ${status}`} role="status"><span>{status === 'success' ? <CheckCircle2 size={18} /> : status === 'error' ? <X size={18} /> : <BadgeCheck size={18} />}</span><p>{statusMessage}</p></div>}
+          <small className="op-form-privacy">By submitting, you confirm the information is accurate and relates to a business enquiry.</small>
+        </form>
+      </section>
+
+      <footer className="op-footer">
+        <a className="op-brand op-footer-brand" href="#top"><span className="op-brand-mark"><Snowflake size={22} /></span><span><strong>JD HOLDINGS</strong><small>COLD STORAGE SOLUTIONS</small></span></a>
+        <p>Respectful service. Accountable operations. Trusted partnerships.</p>
+        <div><span>© {new Date().getFullYear()} JD Holdings</span><Link href="/portal">Operations portal <ArrowRight size={14} /></Link></div>
+      </footer>
+      <a className="op-mobile-cta" href="#contact">Discuss an opportunity <ArrowRight size={16} /></a>
+    </main>
+  );
 }
-
-function Stat({icon,label,value,foot}:{icon:React.ReactNode;label:string;value:React.ReactNode;foot:string}){return <div className="stat-card"><div className="stat-top"><span>{label}</span><span className="stat-icon">{icon}</span></div><div className="stat-value">{value}</div><div className="stat-foot">{foot}</div></div>}
-function PageHead({eyebrow,title,desc,action}:{eyebrow:string;title:string;desc:string;action?:React.ReactNode}){return <div className="page-head"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{desc}</p></div>{action}</div>}
-function Field({label,children,full=false}:{label:string;children:React.ReactNode;full?:boolean}){return <div className={'form-field '+(full?'full':'')}><label>{label}</label>{children}</div>}
-function ReportTile({title,value,detail}:{title:string;value:React.ReactNode;detail:string}){return <div className="report-tile"><span>{title}</span><strong style={{fontSize:String(value).length>12?15:25,overflowWrap:'anywhere'}}>{value}</strong><small>{detail}</small></div>}
