@@ -177,7 +177,7 @@ export default function OpportunitiesPage() {
 
       <section className="op-contact-section" id="contact">
         <div className="op-contact-copy">
-          <span className="op-section-kicker">LET'S CONNECT</span>
+          <span className="op-section-kicker">LET&apos;S CONNECT</span>
           <h2>Tell us what a<br /><em>partnership could look like.</em></h2>
           <p>Share a few details and the kind of opportunity you would like to discuss. Please do not include sensitive personal, patient, or case information in this form.</p>
           <div className="op-contact-detail"><span><Mail size={18} /></span><div><strong>Business enquiries</strong><small>Use the form to introduce your organisation and goals.</small></div></div>
