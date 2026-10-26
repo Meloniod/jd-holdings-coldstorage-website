@@ -1,4 +1,4 @@
-# JD Holdings Cold Storage Portal
+# Jadan Holdings Cold Storage Portal
 
 A responsive MVP prototype for mortuary cold-storage operations: case intake, storage allocation and transfers, release approvals, document metadata, invoicing, reports and an audit-event view.
 
@@ -16,7 +16,7 @@ The homepage includes partnership, investor, and business enquiry messaging plus
 - Main page: `app/page.tsx`
 - Portal: `app/portal/page.tsx`
 - Form integration: set `NEXT_PUBLIC_LEAD_ENDPOINT` to an approved HTTPS endpoint that validates and securely stores leads in a CRM/database.
-- **Preview warning:** without that environment variable, form submissions are saved only in the visitor's browser local storage and are not delivered to JD Holdings. Configure and test the endpoint before using the form for real lead capture.
+- **Preview warning:** without that environment variable, form submissions are saved only in the visitor's browser local storage and are not delivered to Jadan Holdings. Configure and test the endpoint before using the form for real lead capture.
 - Production setup checklist: `docs/PRODUCTION-READINESS.md`
 
 Confirm all business claims, contact details, privacy wording, service coverage, and investment disclosures with the business owner before launch.
