@@ -69,7 +69,7 @@ export default function OpportunitiesPage() {
 
     const lead = {
       ...form,
-      source: 'JD Holdings opportunities website',
+      source: 'Jadan Holdings opportunities website',
       submittedAt: new Date().toISOString(),
       id: typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `lead-${Date.now()}`,
     };
@@ -99,7 +99,7 @@ export default function OpportunitiesPage() {
       const existing = JSON.parse(window.localStorage.getItem(key) || '[]') as unknown[];
       window.localStorage.setItem(key, JSON.stringify([...existing, lead]));
       setStatus('local');
-      setStatusMessage('Preview only: this enquiry is saved in this browser and has not been sent to JD Holdings. Configure NEXT_PUBLIC_LEAD_ENDPOINT before publishing the form.');
+      setStatusMessage('Preview only: this enquiry is saved in this browser and has not been sent to Jadan Holdings. Configure NEXT_PUBLIC_LEAD_ENDPOINT before publishing the form.');
       setForm(initialForm);
     } catch {
       setStatus('error');
@@ -110,9 +110,9 @@ export default function OpportunitiesPage() {
   return (
     <main className="opportunity-site">
       <header className="op-nav">
-        <a className="op-brand" href="#top" aria-label="JD Holdings home">
+        <a className="op-brand" href="#top" aria-label="Jadan Holdings home">
           <span className="op-brand-mark"><Snowflake size={24} strokeWidth={1.8} /></span>
-          <span><strong>JD HOLDINGS</strong><small>COLD STORAGE SOLUTIONS</small></span>
+          <span><strong>JADAN HOLDINGS</strong><small>COLD STORAGE SOLUTIONS</small></span>
         </a>
         <nav className="op-nav-links" aria-label="Main navigation">
           <a href="#approach">Our approach</a>
@@ -127,7 +127,7 @@ export default function OpportunitiesPage() {
           <div className="op-hero-copy">
             <div className="op-eyebrow"><span /> INFRASTRUCTURE · CARE · ACCOUNTABILITY</div>
             <h1>Building trusted pathways for <em>essential care.</em></h1>
-            <p className="op-hero-intro">JD Holdings is opening conversations with service partners, facilities, and potential investors around responsible mortuary cold-storage solutions and the operational systems that support them.</p>
+            <p className="op-hero-intro">Jadan Holdings is opening conversations with service partners, facilities, and potential investors around responsible mortuary cold-storage solutions and the operational systems that support them.</p>
             <div className="op-hero-actions">
               <a className="op-button op-button-light" href="#contact">Discuss an opportunity <ArrowRight size={17} /></a>
               <a className="op-text-link" href="#approach">Explore our approach <ArrowDownRight size={17} /></a>
@@ -196,7 +196,7 @@ export default function OpportunitiesPage() {
             <label className="op-form-wide">I am interested in *<select required value={form.interest} onChange={(e) => update('interest', e.target.value)}><option>Business partnership</option><option>Facility or service partnership</option><option>Investment opportunity</option><option>Client or referral enquiry</option><option>Technology or operational collaboration</option><option>Other business enquiry</option></select></label>
             <label className="op-form-wide">Tell us a little about your enquiry *<textarea required minLength={10} maxLength={2000} rows={4} value={form.message} onChange={(e) => update('message', e.target.value)} placeholder="What would you like to explore together?" /></label>
           </div>
-          <label className="op-consent"><input type="checkbox" required checked={form.consent} onChange={(e) => update('consent', e.target.checked)} /><span>I agree that JD Holdings may use these details to respond to this business enquiry. *</span></label>
+          <label className="op-consent"><input type="checkbox" required checked={form.consent} onChange={(e) => update('consent', e.target.checked)} /><span>I agree that Jadan Holdings may use these details to respond to this business enquiry. *</span></label>
           <button className="op-submit" type="submit" disabled={status === 'sending'}>{status === 'sending' ? 'Sending enquiry…' : 'Send business enquiry'} <ArrowRight size={17} /></button>
           {statusMessage && <div className={`op-form-status ${status}`} role="status"><span>{status === 'success' ? <CheckCircle2 size={18} /> : status === 'error' ? <X size={18} /> : <BadgeCheck size={18} />}</span><p>{statusMessage}</p></div>}
           <small className="op-form-privacy">By submitting, you confirm the information is accurate and relates to a business enquiry.</small>
@@ -204,9 +204,9 @@ export default function OpportunitiesPage() {
       </section>
 
       <footer className="op-footer">
-        <a className="op-brand op-footer-brand" href="#top"><span className="op-brand-mark"><Snowflake size={22} /></span><span><strong>JD HOLDINGS</strong><small>COLD STORAGE SOLUTIONS</small></span></a>
+        <a className="op-brand op-footer-brand" href="#top"><span className="op-brand-mark"><Snowflake size={22} /></span><span><strong>JADAN HOLDINGS</strong><small>COLD STORAGE SOLUTIONS</small></span></a>
         <p>Respectful service. Accountable operations. Trusted partnerships.</p>
-        <div><span>© {new Date().getFullYear()} JD Holdings</span><Link href="/portal">Operations portal <ArrowRight size={14} /></Link></div>
+        <div><span>© {new Date().getFullYear()} Jadan Holdings</span><Link href="/portal">Operations portal <ArrowRight size={14} /></Link></div>
       </footer>
       <a className="op-mobile-cta" href="#contact">Discuss an opportunity <ArrowRight size={16} /></a>
     </main>
