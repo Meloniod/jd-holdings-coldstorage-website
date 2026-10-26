@@ -4,7 +4,7 @@ A responsive MVP prototype for mortuary cold-storage operations: case intake, st
 
 ## Current status
 
-**This is a browser-local demonstration, not a production mortuary system.** The interface uses fictional seed records and persists changes in `localStorage` in the current browser. No Supabase project, authentication provider, server API, private file storage, email, payment gateway, hardware temperature feed or Vercel deployment has been connected.
+**This is a browser-local demonstration, not a production mortuary system.** The interface uses fictional seed records and persists changes in `localStorage` in the current browser. No Supabase project, authentication provider, server API, private file storage, email, payment gateway, hardware temperature feed or Vercel deployment has been connected. A draft Supabase schema and starter RLS policies are included under `supabase/migrations/`; they have not been applied or security-tested.
 
 Do not enter real deceased-person, next-of-kin, identity, health, legal or operational information. Browser local storage is not an appropriate repository for sensitive records.
 
