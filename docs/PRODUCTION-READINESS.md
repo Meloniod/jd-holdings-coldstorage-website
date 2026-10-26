@@ -1,6 +1,6 @@
 # Production Readiness Plan
 
-This document describes the work required to take the JD Holdings Cold Storage Management Portal from its current local-storage MVP to a secure, supportable production application.
+This document describes the work required to take the Jadan Holdings Cold Storage Management Portal from its current local-storage MVP to a secure, supportable production application.
 
 > **Current status:** The portal is an interactive MVP. It stores records in the browser's local storage, uses fictional demo data, and includes a draft Supabase schema. It is **not production-ready**. Do not enter real deceased-person, family, identification, medical, payment, or other confidential information until the controls below are implemented and independently tested.
 
@@ -160,5 +160,5 @@ The public partnership and investor page is the homepage at `/`; the operations 
 - [ ] Configure social-sharing metadata and an accurate canonical domain once the production domain is confirmed.
 - [ ] Add conversion analytics only after reviewing consent and privacy implications.
 
-**Important:** Without `NEXT_PUBLIC_LEAD_ENDPOINT`, the form saves the enquiry in that visitor's browser local storage for preview purposes only. It does not deliver the lead to JD Holdings. Do not publish the form for real lead capture until the endpoint/CRM integration has been configured and tested.
+**Important:** Without `NEXT_PUBLIC_LEAD_ENDPOINT`, the form saves the enquiry in that visitor's browser local storage for preview purposes only. It does not deliver the lead to Jadan Holdings. Do not publish the form for real lead capture until the endpoint/CRM integration has been configured and tested.
 
