@@ -4,7 +4,7 @@ import { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowDownRight, ArrowRight, BadgeCheck, Building2, CheckCircle2, ChevronRight,
-  CircleDollarSign, ClipboardCheck, Download, FileText, Handshake, Mail, MapPin, ShieldCheck,
+  CircleDollarSign, ClipboardCheck, FileText, Handshake, Mail, MapPin, ShieldCheck,
   Snowflake, Users, Warehouse, X
 } from 'lucide-react';
 
@@ -51,21 +51,6 @@ const principles = [
   { icon: ShieldCheck, title: 'Respectful by design', copy: 'Sensitive operations call for discretion, clear procedures, and accountable handling of information.' },
   { icon: ClipboardCheck, title: 'Operational visibility', copy: 'A structured workflow can support traceable intake, storage allocation, release checks, and administration.' },
   { icon: Users, title: 'Partnership-led growth', copy: 'Sustainable service delivery depends on trusted relationships with facilities, professionals, and funding partners.' },
-];
-
-const businessDocuments = [
-  {
-    id: 'pitch-deck',
-    title: 'Jadan Holdings pitch deck',
-    description: 'An introduction to Jadan Holdings and its cold-storage partnership opportunity.',
-    downloadName: 'jadan-holdings-pitch-deck.pdf',
-  },
-  {
-    id: 'business-plan',
-    title: 'Master B2B business plan',
-    description: 'The business plan covering the B2B model, rent-to-own approach, and local suppliers.',
-    downloadName: 'jadan-holdings-business-plan.pdf',
-  },
 ];
 
 export default function OpportunitiesPage() {
@@ -132,7 +117,7 @@ export default function OpportunitiesPage() {
         <nav className="op-nav-links" aria-label="Main navigation">
           <a href="#approach">Our approach</a>
           <a href="#opportunities">Opportunities</a>
-          <a href="#documents">Documents</a>
+          <Link href="/business-documents">Documents</Link>
           <a href="#contact">Contact</a>
         </nav>
         <a className="op-nav-cta" href="#contact">Start a conversation <ArrowRight size={16} /></a>
@@ -188,33 +173,7 @@ export default function OpportunitiesPage() {
             return <article className="opportunity-card" key={item.number}><div className="op-card-meta"><span>{item.number}</span><Icon size={23} /></div><span className="op-card-tag">{item.tag}</span><h3>{item.title}</h3><p>{item.description}</p><a href="#contact" onClick={() => update('interest', item.number === '01' ? 'Facility or service partnership' : item.number === '02' ? 'Investment opportunity' : 'Client or referral enquiry')}>Explore this path <ArrowRight size={16} /></a></article>;
           })}
         </div>
-        <div className="op-investor-note"><div className="op-investor-icon"><Building2 size={23} /></div><div><strong>For potential investors</strong><p>We welcome initial discussions to understand strategic fit, experience, investment criteria, and information requirements. Any investment opportunity is subject to due diligence, appropriate approvals, and definitive documentation. No financial return is promised or implied.</p></div><a href="#contact">Make an introduction <ArrowRight size={16} /></a></div>
-      </section>
-
-      <section className="op-documents" id="documents">
-        <div className="op-section-heading">
-          <div><span className="op-section-kicker">SPONSORSHIP & INVESTOR MATERIALS</span><h2>Explore the<br />business documents.</h2></div>
-          <p>Read the pitch deck and business plan below. Download either document with the Jadan Holdings watermark included on every page.</p>
-        </div>
-        <div className="op-document-grid">
-          {businessDocuments.map((document) => (
-            <article className="op-document-card" key={document.id}>
-              <div className="op-document-heading">
-                <span className="op-document-icon"><FileText size={20} /></span>
-                <div><h3>{document.title}</h3><p>{document.description}</p></div>
-                <a className="op-document-download" href={`/api/documents/${document.id}?download=1`} download={document.downloadName} aria-label={`Download ${document.title} with Jadan watermark`}>
-                  <Download size={16} /><span>Download PDF</span>
-                </a>
-              </div>
-              <iframe
-                className="op-document-reader"
-                src={`/api/documents/${document.id}`}
-                title={`PDF reader: ${document.title}`}
-                loading="lazy"
-              />
-            </article>
-          ))}
-        </div>
+        <div className="op-investor-note"><div className="op-investor-icon"><Building2 size={23} /></div><div><strong>For potential investors</strong><p>We welcome initial discussions to understand strategic fit, experience, investment criteria, and information requirements. Any investment opportunity is subject to due diligence, appropriate approvals, and definitive documentation. No financial return is promised or implied.</p></div><div className="op-investor-actions"><Link href="/business-documents" className="op-investor-documents"><FileText size={15} />View business documents</Link><a href="#contact">Make an introduction <ArrowRight size={16} /></a></div></div>
       </section>
 
       <section className="op-contact-section" id="contact">

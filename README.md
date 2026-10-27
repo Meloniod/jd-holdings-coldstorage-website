@@ -14,7 +14,7 @@ A responsive MVP prototype for mortuary cold-storage operations: case intake, st
 The homepage includes partnership, investor, and business enquiry messaging plus an enquiry form.
 
 - Main page: `app/page.tsx`
-- Sponsorship and investor documents: the pitch deck and business plan are available in an embedded PDF reader on the homepage. Viewing and downloading both use a server-generated PDF with a Jadan Holdings watermark on every page.
+- Sponsorship and investor documents: visit `/business-documents` from the homepage to read the pitch deck and business plan in embedded PDF readers. Viewing and downloading both use a server-generated PDF with a Jadan Holdings watermark on every page.
 - PDF delivery and watermarking: `app/api/documents/[document]/route.ts` (uses `pdf-lib`).
 - Portal: `app/portal/page.tsx`
 - Form integration: set `NEXT_PUBLIC_LEAD_ENDPOINT` to an approved HTTPS endpoint that validates and securely stores leads in a CRM/database.
